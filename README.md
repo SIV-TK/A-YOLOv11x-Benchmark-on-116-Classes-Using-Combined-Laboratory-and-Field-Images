@@ -12,6 +12,56 @@
 
 ---
 
+## 🧠 Training Configuration
+
+| Parameter | Value |
+|-----------|-------|
+| Architecture | YOLOv11x (57M parameters) |
+| Input size | 640 × 640 pixels |
+| Batch size | 64 (A100) / 8 (T4) |
+| Optimizer | AdamW |
+| Initial learning rate | 0.001 |
+| Final learning rate | 0.00001 (cosine decay) |
+| Weight decay | 0.0005 |
+| Momentum | 0.937 |
+| Warmup epochs | 3 |
+| Total epochs | 100 (early stopping at 49) |
+| Mixed precision | Enabled |
+| Augmentations | Mosaic (100%), MixUp (20%), Copy-Paste (20%), Rotation (±10°), Translation (±10%), Scaling (±50%), Flip (50%), HSV adjust |
+
+---
+
+## 📈 Results
+
+### Comparison with Published Benchmarks
+
+| Study | Dataset | Classes | Architecture | mAP50 |
+|-------|---------|---------|--------------|-------|
+| Moupojou et al. (2023) | FieldPlant | 27 | Faster R-CNN | ~38% |
+| PlantDoc benchmark | PlantDoc | 27 | YOLOv5 | 43-48% |
+| PlantVillage typical | PlantVillage | 38 | YOLOv5/v8 | 85-90% |
+| **Our model** | **Combined** | **116** | **YOLOv11x** | **69.8%** |
+
+### Model Export Sizes
+
+| Format | Size | mAP50 (validation) |
+|--------|------|---------------------|
+| PyTorch (FP32) | 457 MB | 69.8% |
+| TFLite (FP16) | 114 MB | 69.5% |
+| TFLite (INT8) | 62 MB | 68.2% |
+| ONNX | 113 MB | 69.8% |
+
+### Inference Speed
+
+| Hardware | Precision | Time per image (ms) | FPS |
+|----------|-----------|---------------------|-----|
+| NVIDIA A100 | FP16 | 4.4 | 227 |
+| NVIDIA T4 | FP16 | 15.2 | 66 |
+| iPhone 14 | FP16 (Core ML) | ~120 | 8 |
+| Android flagship | INT8 (TFLite) | ~180 | 5 |
+
+---
+
 ## 📊 Model Performance Summary
 
 | Metric | Value |
@@ -86,20 +136,6 @@ The model combines two complementary datasets:
 | plantwild | Laboratory | 18,533 | 89 | 78.2% |
 | FieldPlant | Field | 5,156 | 27 | 21.8% |
 
-### Crop Coverage
-
-- **Corn**: Stripe, leaf blight, rust, smut, gray leaf spot, northern leaf blight
-- **Tomato**: Early blight, late blight, bacterial spot, septoria leaf spot, yellow leaf curl virus, mosaic virus
-- **Cassava**: Mosaic disease, brown leaf spot, bacterial blight, root rot, healthy
-- **Apple**: Scab, black rot, rust, mosaic virus
-- **Grape**: Downy mildew, black rot, leaf spot
-- **Potato**: Late blight, early blight
-- **Banana**: Panama disease, Sigatoka
-- **Citrus**: Greening disease, canker
-- **Rice**: Blast, sheath blight
-- **Soybean**: Rust, leaf spot
-- **And over 70 additional crop-disease combinations**
-
 ---
 
 ## 🚀 Quick Start
@@ -114,6 +150,7 @@ The model combines two complementary datasets:
 
 ### Option 2: Local Installation
 
+```bash
 # Clone repository
 git clone https://github.com/SIV-TK/A-YOLOv11x-Benchmark-on-116-Classes-Using-Combined-Laboratory-and-Field-Images.git
 cd A-YOLOv11x-Benchmark-on-116-Classes-Using-Combined-Laboratory-and-Field-Images
@@ -124,27 +161,31 @@ pip install ultralytics opencv-python matplotlib seaborn scikit-learn pandas pyy
 # Run the training notebook
 jupyter notebook YOLO\(2\).ipynb
 
+Option 3: Load Pre-trained Model
+python
+
+from ultralytics import YOLO
+
+# Download model from GitHub releases or Hugging Face
+model = YOLO('best.pt')  # or 'sivtk/plant-disease-yolov11x-116classes'
+
+# Run inference
+results = model('path/to/leaf_image.jpg', conf=0.25)
+
+# Display results
+results[0].show()
+
+# Get detections
+for box in results[0].boxes:
+    class_id = int(box.cls[0])
+    confidence = float(box.conf[0])
+    class_name = model.names[class_id]
+    print(f"Detected: {class_name} ({confidence:.2%})")
+
 📁 Repository Structure
+text
+
 ├── YOLO(2).ipynb              # Complete training notebook
-├── README.md                   # This file
-├── LICENSE                     # MIT License
-├── best.pt                     # Pre-trained model weights (69.8% mAP50)
-├── dataset/                    # Dataset folder (created by notebook)
-│   ├── train/images/           # 16,582 training images
-│   ├── train/labels/           # Training labels
-│   ├── val/images/             # 4,737 validation images
-│   ├── val/labels/             # Validation labels
-│   ├── test/images/            # 2,370 test images
-│   ├── test/labels/            # Test labels
-│   └── data.yaml               # Dataset configuration
-└── publication/               # Generated figures and tables
-    ├── comparison_bar_chart.png
-    ├── training_curves.png
-    ├── confusion_matrix.png
-    ├── dataset_source_pie.png
-    ├── dataset_split_bar.png
-    ├── overall_performance.csv
-    └── comparison_table.csv├── YOLO(2).ipynb              # Complete training notebook
 ├── README.md                   # This file
 ├── LICENSE                     # MIT License
 ├── best.pt                     # Pre-trained model weights (69.8% mAP50)
@@ -165,40 +206,6 @@ jupyter notebook YOLO\(2\).ipynb
     ├── overall_performance.csv
     └── comparison_table.csv
 
-
-🧠 Training Configuration
-Parameter	Value
-Architecture	YOLOv11x (57M parameters)
-Input size	640 × 640 pixels
-Batch size	64 (A100) / 8 (T4)
-Optimizer	AdamW
-Initial learning rate	0.001
-Final learning rate	0.00001 (cosine decay)
-Weight decay	0.0005
-Momentum	0.937
-Warmup epochs	3
-Total epochs	100 (early stopping at 49)
-Mixed precision	Enabled
-Augmentations	Mosaic (100%), MixUp (20%), Copy-Paste (20%), Rotation (±10°), Translation (±10%), Scaling (±50%), Flip (50%), HSV adjust
-📈 Results
-Comparison with Published Benchmarks
-Study	Dataset	Classes	Architecture	mAP50
-Moupojou et al. (2023)	FieldPlant	27	Faster R-CNN	~38%
-PlantDoc benchmark	PlantDoc	27	YOLOv5	43-48%
-PlantVillage typical	PlantVillage	38	YOLOv5/v8	85-90%
-Our model	Combined	116	YOLOv11x	69.8%
-Model Export Sizes
-Format	Size	mAP50 (validation)
-PyTorch (FP32)	457 MB	69.8%
-TFLite (FP16)	114 MB	69.5%
-TFLite (INT8)	62 MB	68.2%
-ONNX	113 MB	69.8%
-Inference Speed
-Hardware	Precision	Time per image (ms)	FPS
-NVIDIA A100	FP16	4.4	227
-NVIDIA T4	FP16	15.2	66
-iPhone 14	FP16 (Core ML)	~120	8
-Android flagship	INT8 (TFLite)	~180	5
 🔄 Resume Training
 
 The notebook automatically saves checkpoints. To resume interrupted training:
@@ -269,6 +276,3 @@ For questions, issues, or collaboration requests, please open an issue on GitHub
 ⭐ Star this Repository
 
 If you find this work useful for your research or application, please consider starring the repository and citing it in your publications.
-
-Last Updated: May 2026
-
